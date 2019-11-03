@@ -1,0 +1,14 @@
+version: '3.6'
+services:
+  dockerhost:
+    image: qoomon/docker-host
+    cap_add: [ 'NET_ADMIN', 'NET_RAW' ]
+    restart: on-failure
+
+  opa:
+    image: openpolicyagent/opa:0.15.0
+    command: run --server --log-level debug
+    ports:
+      - "8181:8181"
+    restart: always
+    depends_on: [ dockerhost ]
