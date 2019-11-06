@@ -7,10 +7,12 @@ services:
 
   opa:
     image: openpolicyagent/opa:0.15.0
-    command: run --server --log-level debug -c /opa_config.yaml
+    # command: run --server --log-level debug -c /opa_config.yaml 
+    command: test -v -b /bundle.tgz
     ports:
       - "8181:8181"
     restart: always
     depends_on: [ dockerhost ]
     volumes:
       - ./opa_config.yaml:/opa_config.yaml
+      - ./bundle.tgz:/bundle.tgz

@@ -2,91 +2,41 @@ import { Router, Response, Request } from 'express';
 import tar from 'tar-stream';
 import zlib from 'zlib';
 
+import authz from './data/authz';
+import authzTest from './data/test';
+
 const router = Router();
-
-const authz = `
-  package authz
-
-  default allow = false
-
-  allow {
-    some user_id, scope, permission
-    input.scope = scope
-    input.user_id = user_id
-    input.permission = permission
-
-    role_id := data.user_roles[user_id][scope]
-    data.roles[role_id][_] == permission
-  }
-`;
-
-const other = `
-  allow {
-    some user_id, scope, permission
-    input.scope = scope
-    input.user_id = user_id
-    input.permission = permission
-
-    user_roles[user_id][scope] == undefined
-    scope2 := scope_parent[scope]
-    scope2 != undefined
-
-    roleId := user_roles[user_id][scope2]
-    roles[roleId][_] = permission
-  }
-
-  allow {
-    some user_id, scope, permission
-    input.scope = scope
-    input.user_id = user_id
-    input.permission = permission
-
-    user_roles[user_id][scope] == undefined
-    scope2 := scope_parent[scope]
-    scope2 == undefined
-    scope3 := scope_parent[scope2]
-    scope3 != undefined
-
-    roleId := user_roles[user_id][scope3]
-    roles[roleId][_] = permission
-  }
-
-  allow {
-    some user_id, scope, permission
-    input.scope = scope
-    input.user_id = user_id
-    input.permission = permission
-
-    user_roles[user_id][scope] == undefined
-    scope2 := scope_parent[scope]
-    scope2 == undefined
-    scope3 := scope_parent[scope2]
-    scope3 == undefined
-    scope4 := scope_parent[scope3]
-    scope4 != undefined
-
-    roleId := user_roles[user_id][scope4]
-    roles[roleId][_] = permission
-  }
-`;
 
 const scopeParent = `
   {
     "global": null,
     "org:1": "global",
-    "course:54": "org:1",
-    "course:100": "org:1",
-    "section:1": "course:54",
-    "section:2": "course:54",
-    "section:3": "course:100"
+    "course:1": "org:1",
+    "course:2": "org:1",
+    "section:1a": "course:1",
+    "section:1b": "course:1",
+    "section:2a": "course:2"
   }
 `;
 
 const userRoles = `
   {
-    "144": {
-      "course:54": 2,
-      "section:1": 0
+    "alice": {
+      "section:1a": 0
+    },
+    "bob": {
+      "section:1b": 0,
+      "course:2": 2
+    },
+    "charlie": {
+      "course:1": 1,
+      "section:2a": 2
+    },
+    "david": {
+      "course:2": 1
+    },
+    "edith": {
+      "org:1": 3
     }
   }
 `;
@@ -94,21 +44,25 @@ const userRoles = `
 const roles = `
   [
     {
-      "name": "Prof",
-      "permissions": ["present", "assign", "view all grades"]
+      "name": "Student",
+      "permissions": ["view module items", "view my grades"]
     },
     {
-      "name": "Student",
-      "permissions": ["view my grades"]
+      "name": "Prof",
+      "permissions": ["view module items", "present", "assign", "view all grades", "edit all grades"]
     },
     {
       "name": "TA",
-      "permissions": ["present", "assign"]
+      "permissions": ["view module items", "present", "assign"]
+    },
+    {
+      "name": "Department Head",
+      "permissions": ["view module items", "view all grades"]
     }
   ]
 `;
 
-const makeBundle = () => {
+export const makeBundle = () => {
   const stream = tar.pack();
 
   const addFile = (name: string, contents: string) =>
@@ -120,9 +74,16 @@ const makeBundle = () => {
     });
   
   addFile('authz.rego', authz).then(() =>
-    addFile('roles/data.json', roles).then(() =>
-      addFile('user_roles/data.json', userRoles).then(() =>
-        addFile('scope_parent/data.json', scopeParent).then(() => stream.finalize()))));
+    addFile('authz_test.rego', authzTest).then(() =>
+      addFile('roles/data.json', roles).then(() =>
+        addFile('user_roles/data.json', userRoles).then(() =>
+          addFile('scope_parent/data.json', scopeParent).then(() =>
+            stream.finalize()
+          )
+        )
+      )
+    )
+  );
 
   return stream.pipe(zlib.createGzip());
 };
