@@ -1,0 +1,18 @@
+services:
+  api:
+    url: http://dockerhost:3000
+
+labels:
+  app: myapp
+  region: west
+  environment: production
+
+bundles:
+  authz:
+    service: api
+    resource: bundle.tgz
+    polling:
+      min_delay_seconds: 60
+      max_delay_seconds: 120
+
+default_decision: /authz/allow

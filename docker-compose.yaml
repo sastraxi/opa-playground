@@ -7,8 +7,10 @@ services:
 
   opa:
     image: openpolicyagent/opa:0.15.0
-    command: run --server --log-level debug
+    command: run --server --log-level debug -c /opa_config.yaml
     ports:
       - "8181:8181"
     restart: always
     depends_on: [ dockerhost ]
+    volumes:
+      - ./opa_config.yaml:/opa_config.yaml

@@ -4,10 +4,8 @@ import zlib from 'zlib';
 
 const router = Router();
 
-const rego = `
+const authz = `
   package authz
-
-  default allow = false
 
   allow {
     some user_id, scope, permission
@@ -16,9 +14,13 @@ const rego = `
     input.permission = permission
 
     roleId := user_roles[user_id][scope]
-    permission in roles[roleId]
+    roles[roleId][_] == permission
   }
 
+  default allow = false
+`;
+
+const other = `
   allow {
     some user_id, scope, permission
     input.scope = scope
@@ -30,7 +32,7 @@ const rego = `
     scope2 != undefined
 
     roleId := user_roles[user_id][scope2]
-    permission in roles[roleId]
+    roles[roleId][_] = permission
   }
 
   allow {
@@ -46,7 +48,7 @@ const rego = `
     scope3 != undefined
 
     roleId := user_roles[user_id][scope3]
-    permission in roles[roleId]
+    roles[roleId][_] = permission
   }
 
   allow {
@@ -64,7 +66,7 @@ const rego = `
     scope4 != undefined
 
     roleId := user_roles[user_id][scope4]
-    permission in roles[roleId]
+    roles[roleId][_] = permission
   }
 `;
 
@@ -117,7 +119,7 @@ const makeBundle = () => {
       });
     });
   
-  addFile('authz.rego', rego).then(() =>
+  addFile('authz.rego', authz).then(() =>
     addFile('roles/data.json', roles).then(() =>
       addFile('user_roles/data.json', userRoles).then(() =>
         addFile('scope_parent/data.json', scopeParent).then(() => stream.finalize()))));
