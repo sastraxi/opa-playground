@@ -7,17 +7,17 @@ const router = Router();
 const authz = `
   package authz
 
+  default allow = false
+
   allow {
     some user_id, scope, permission
     input.scope = scope
     input.user_id = user_id
     input.permission = permission
 
-    roleId := user_roles[user_id][scope]
-    roles[roleId][_] == permission
+    role_id := data.user_roles[user_id][scope]
+    data.roles[role_id][_] == permission
   }
-
-  default allow = false
 `;
 
 const other = `
