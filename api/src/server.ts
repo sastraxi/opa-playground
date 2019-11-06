@@ -4,6 +4,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
+import bundle from './bundle';
+
 const app = express();
 
 app.use(
@@ -21,6 +23,8 @@ app.get('/', (req, res) => {
     status: 'Ready to build something awesome?',
   });
 });
+
+app.use(bundle);
 
 const port = process.env.PORT || 3000;
 app.listen(port , () =>
